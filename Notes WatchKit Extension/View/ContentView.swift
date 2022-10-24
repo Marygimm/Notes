@@ -15,8 +15,40 @@ struct ContentView: View {
     
     //MARK: - Function
     
+    func getDocumentDirectory() -> URL {
+        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return path[0]
+    }
+    
     func save() {
-        dump(notes)
+        do {
+            //1. convert the notes array to data usign JSONEncoder
+            let data = try JSONEncoder().encode(notes)
+            //2. Create a new url to save the file using the getDocumentDirectory
+            let url = getDocumentDirectory().appendingPathComponent("notes")
+            //3. Write the data to the given URL
+            try data.write(to: url)
+        } catch {
+            print("saving data has failed!")
+        }
+    }
+    
+    func load() {
+        DispatchQueue.main.async {
+            do {
+                //1. Get the notes URL path
+                let url = getDocumentDirectory().appendingPathComponent("notes")
+                
+                //2. Create a new property for the data
+                let data = try Data(contentsOf: url)
+                
+                //3. Decode the data
+                
+                notes = try JSONDecoder().decode([Note].self, from: data)
+            } catch {
+              //Do nothing
+            }
+        }
     }
     
     //MARK: - Body
@@ -51,15 +83,29 @@ struct ContentView: View {
 
                 } //: HStack
                 Spacer()
-                Text("\(notes.count)")
+                List {
+                    ForEach(0..<notes.count, id: \.self) { i in
+                        HStack {
+                            Capsule()
+                                .frame(width: 4)
+                                .foregroundColor(.accentColor)
+                            Text(notes[i].text)
+                                .lineLimit(1)
+                                .padding(.leading, 5)
+                        } //:Stack
+                    }
+                }//: List
             } //: VStack
             .navigationTitle("Notes")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                load()
+            }
     }
 }
 //MARK: - Preview
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+            ContentView()
     }
 }
